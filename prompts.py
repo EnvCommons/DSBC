@@ -1,0 +1,1 @@
+INSTRUCTIONS = """Solve the following task. Several files are available locally, which you should use to solve the task. Note some of these files are large, we recommend using Python to view and parse them."""

@@ -1,0 +1,4 @@
+openreward
+pandas==2.3.1
+numpy
+pydantic==2.11.7
