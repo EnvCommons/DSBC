@@ -18,10 +18,6 @@ DSBC (Data Science task Benchmarking with Context engineering) evaluates languag
 
 Agents are given a sandbox with 1GB of RAM and 0.5 CPUs, with pandas pre-installed.
 
-## License
-
-The DSBC benchmark dataset and evaluation framework are released under open-source licenses by the original authors. See the [original repository](https://arxiv.org/abs/2507.23336) for details.
-
 ## Tasks
 
 There are 303 tasks in a single training split, spanning 11 datasets:
