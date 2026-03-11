@@ -144,4 +144,4 @@ class DSBC(CLIEnvironment):
 
     @classmethod
     def list_splits(cls) -> list[str]:
-        return [Split("train", type="train")]
+        return [Split(name="train", type="train")]
