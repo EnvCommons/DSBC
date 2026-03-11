@@ -11,9 +11,15 @@ from openreward.environments import JSONObject, TextBlock, ToolOutput, tool, Spl
 
 from cli_environment import CLIEnvironment, BashParams
 from prompts import INSTRUCTIONS
+import os
+
 
 logger = logging.getLogger(__name__)
-DATASET_PATH = Path(__file__).parent / "dataset.csv"
+
+if os.path.exists('/orwd_data'):
+    DATASET_PATH = Path("/orwd_data") / "dataset.csv"
+else:
+    DATASET_PATH = Path(__file__).parent / "dataset.csv"
 
 
 class TaskSpec(BaseModel, extra="forbid"):
