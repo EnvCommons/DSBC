@@ -1,0 +1,14 @@
+# Local /orwd_data mirror for `docker run -v $PWD/.cache:/orwd_data`
+.cache/
+
+# Source CSVs and the per-dataset upload tree — data, not code
+datasets/
+bucket_upload/
+
+# macOS
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
