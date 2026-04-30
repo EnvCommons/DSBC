@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from openreward import AsyncOpenReward, SandboxBucketConfig, SandboxSettings
 from openreward.environments import JSONObject, TextBlock, ToolOutput, tool, Split
 
-from cli_environment import CLIEnvironment, BashParams
+from cli_environment import CLIEnvironment
 from prompts import INSTRUCTIONS
 import os
 
@@ -59,39 +59,6 @@ class DSBC(CLIEnvironment):
 
         or_client = AsyncOpenReward(api_key=api_key)
         self.sandbox = or_client.sandbox(self.sandbox_settings)
-
-    async def setup(self) -> None:
-        await super().setup()
-
-        # Create working directory and copy the relevant dataset CSV from the mounted bucket
-        await self.sandbox.run("mkdir -p /workdir")
-        dataset = self.validated.dataset
-        dataset_name = f"{dataset.split(' ')[0]}_TRAIN.csv"
-        await self.sandbox.run(f"cp /workspace/{dataset_name} /workdir/{dataset_name}")
-
-    @tool
-    async def bash(self, params: BashParams) -> ToolOutput:
-        """Execute a bash command."""
-        try:
-            cmd = f"cd /workdir && {params.command.strip()}"
-            output, code = await self.sandbox.run(cmd)
-            max_len = self.validated.max_response_length
-
-            if isinstance(max_len, int) and len(output) > max_len:
-                output = f"...(truncated)\n{output[-max_len:]}"
-
-            return ToolOutput(
-                blocks=[TextBlock(text=f"{output}\n\n(exit {code})")],
-                metadata={"output": output, "exit_code": code},
-                reward=0.0,
-                finished=False,
-            )
-        except Exception as e:
-            return ToolOutput(
-                metadata={"error": str(e)},
-                blocks=[TextBlock(text=f"Error executing command: {str(e)}")],
-                finished=False,
-            )
 
     @tool
     async def answer(self, params: ResponseInput) -> ToolOutput:
