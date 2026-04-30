@@ -43,6 +43,8 @@ class DSBC(CLIEnvironment):
         if not api_key:
             raise ValueError("OpenReward API key is required")
 
+        dataset_short = self.validated.dataset.split(' ')[0]
+
         self.sandbox_settings = SandboxSettings(
             environment="GeneralReasoning/DSBC",
             image="generalreasoning/python-ds:3.12-tools",
@@ -51,7 +53,7 @@ class DSBC(CLIEnvironment):
             bucket_config=SandboxBucketConfig(
                 mount_path="/workspace",
                 read_only=True,
-                only_dir="files",
+                only_dir=f"files/{dataset_short}",
             ),
         )
 

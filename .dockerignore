@@ -1,0 +1,14 @@
+.cache/
+datasets/
+bucket_upload/
+.git/
+.gitignore
+.claude/
+.dockerignore
+Dockerfile
+README.md
+test_agent.py
+__pycache__/
+*.pyc
+.venv/
+.env
