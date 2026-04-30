@@ -1,1 +1,1 @@
-INSTRUCTIONS = """Solve the following task. The dataset for this task is available at /workspace/<NAME>_TRAIN.csv (e.g. /workspace/STOCKS_TRAIN.csv)."""
+INSTRUCTIONS = """Solve the following task. The dataset for this task is available at /workspace/<NAME>_TRAIN.csv (e.g. /workspace/STOCKS_TRAIN.csv). Note some of these files are large, we recommend using Python to view and parse them."""
