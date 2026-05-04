@@ -40,7 +40,7 @@ Tasks cover categories including statistics, correlation analysis, data parsing,
 
 ## Reward Structure
 
-This is a sparse, verifiable reward environment. Rewards are issued only when the agent submits a final answer:
+This is a sparse, verifiable reward environment. Rewards are earned only when the agent submits a final answer:
 
 - **Binary**: 1.0 for correct, 0.0 for incorrect
 - **Numeric answers**: compared with `numpy.isclose(rtol=0.01)` (1% relative tolerance)
