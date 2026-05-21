@@ -7,9 +7,9 @@ import pandas as pd
 from pydantic import BaseModel
 
 from openreward import AsyncOpenReward, SandboxBucketConfig, SandboxSettings
-from openreward.environments import JSONObject, TextBlock, ToolOutput, tool, Split
+from openreward.environments import Environment, JSONObject, TextBlock, ToolOutput, tool, Split
+from openreward.toolsets import CLIToolset
 
-from cli_environment import CLIEnvironment
 from prompts import INSTRUCTIONS
 import os
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 if os.path.exists('/orwd_data'):
     DATASET_PATH = Path("/orwd_data") / "dataset.csv"
 else:
-    DATASET_PATH = Path(__file__).parent / "dataset.csv"
+    DATASET_PATH = Path(__file__).parent / "datasets" / "dataset.csv"
 
 
 class TaskSpec(BaseModel, extra="forbid"):
@@ -34,9 +34,13 @@ class ResponseInput(BaseModel, extra="forbid"):
     answer: str
 
 
-class DSBC(CLIEnvironment):
+class DSBC(Environment):
+    # 9-tool sandboxed CLI surface provided by the SDK. The class attribute
+    # makes the framework auto-instantiate the toolset against self.sandbox.
+    toolsets = [CLIToolset]
+
     def __init__(self, task_spec: JSONObject, secrets: dict[str, str] = {}) -> None:
-        super().__init__(task_spec, secrets)
+        super().__init__(task_spec)
         self.validated = TaskSpec.model_validate(task_spec)
 
         api_key = secrets.get("api_key")
@@ -59,6 +63,12 @@ class DSBC(CLIEnvironment):
 
         or_client = AsyncOpenReward(api_key=api_key)
         self.sandbox = or_client.sandbox(self.sandbox_settings)
+
+    async def setup(self) -> None:
+        await self.sandbox.start()
+
+    async def teardown(self) -> None:
+        await self.sandbox.stop()
 
     @tool
     async def answer(self, params: ResponseInput) -> ToolOutput:
