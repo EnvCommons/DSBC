@@ -179,7 +179,7 @@ class DSBC(Environment):
         tasks = []
         for idx, row in df.iterrows():
             tasks.append({
-                "id": idx,
+                "task_id": idx,
                 "dataset": row["Dataset"],
                 "question": row["Question_Rewritten"],
                 "answer": row["Answer_Rewritten"],
