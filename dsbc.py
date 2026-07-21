@@ -162,10 +162,12 @@ class DSBC(Environment):
             "answer, ignoring formatting, phrasing, unit placement, and any extra "
             "explanation. Otherwise reply INCORRECT."
         )
+        # NOTE: temperature is intentionally left at the API default. Some grader
+        # models (e.g. gpt-5.6-luna) only support the default temperature (1) and
+        # reject temperature=0 with a 400, which would fail every non-numeric grade.
         response = await self.grader_client.chat.completions.create(
             model=DEFAULT_GRADER_MODEL,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0,
         )
         verdict = (response.choices[0].message.content or "").strip().upper()
         return 1.0 if verdict.startswith("CORRECT") else 0.0
