@@ -55,7 +55,7 @@ def _last_float(s: str) -> float | None:
 
 
 class TaskSpec(BaseModel, extra="forbid"):
-    id: int
+    task_id: int
     dataset: str
     question: str
     answer: str
