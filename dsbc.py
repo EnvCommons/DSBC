@@ -25,6 +25,9 @@ else:
     DATASET_PATH = Path(__file__).parent / "datasets" / "dataset.csv"
 
 
+# Default LLM judge model for grading non-numeric answers (overridable via env).
+DEFAULT_GRADER_MODEL = os.getenv("DSBC_GRADER_MODEL", "gpt-5.6-luna")
+
 _FLOAT_RE = re.compile(r'[-+]?\d[\d,]*\.?\d*(?:[eE][-+]?\d+)?')
 
 
@@ -160,7 +163,7 @@ class DSBC(Environment):
             "explanation. Otherwise reply INCORRECT."
         )
         response = await self.grader_client.chat.completions.create(
-            model="glm-5.2",
+            model=DEFAULT_GRADER_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
         )
