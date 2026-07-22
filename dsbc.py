@@ -51,7 +51,10 @@ class DSBC(Environment):
 
         self.sandbox_settings = SandboxSettings(
             environment="GeneralReasoning/DSBC",
-            image="generalreasoning/python-ds:3.12-tools",
+            # Self-contained DSBC sandbox image (full data-science stack), published to
+            # Docker Hub as generalreasoning/dsbc_tools by .github/workflows/sandbox-image.yml.
+            # Pinned to an immutable release tag rather than :latest.
+            image="generalreasoning/dsbc_tools:v1.0.0",
             machine_size="0.5:1",
             block_network=False,
             bucket_config=SandboxBucketConfig(
