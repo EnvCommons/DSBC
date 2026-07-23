@@ -153,14 +153,15 @@ class DSBC(Environment):
                 "openai_api_key required in secrets to grade non-numeric answers"
             )
         prompt = (
-            "You are grading an answer to a data-science question. "
-            "Reply with EXACTLY one word: CORRECT or INCORRECT.\n\n"
+            "You are grading an answer to a data-science question.\n\n"
             f"Question:\n{question}\n\n"
             f"Reference (gold) answer:\n{gold}\n\n"
             f"Model answer:\n{model_answer}\n\n"
-            "The model answer is CORRECT if it conveys the same result as the gold "
+            "The model answer is correct if it conveys the same result as the gold "
             "answer, ignoring formatting, phrasing, unit placement, and any extra "
-            "explanation. Otherwise reply INCORRECT."
+            "explanation.\n\n"
+            "Do your reasoning first in <reasoning></reasoning> brackets, and put your "
+            "answer (Correct!/Incorrect.) in <answer></answer> tags."
         )
         # NOTE: temperature is intentionally left at the API default. Some grader
         # models (e.g. gpt-5.6-luna) only support the default temperature (1) and
@@ -169,8 +170,12 @@ class DSBC(Environment):
             model=DEFAULT_GRADER_MODEL,
             messages=[{"role": "user", "content": prompt}],
         )
-        verdict = (response.choices[0].message.content or "").strip().upper()
-        return 1.0 if verdict.startswith("CORRECT") else 0.0
+        text = response.choices[0].message.content or ""
+        # Parse the verdict from inside the <answer></answer> tags; fall back to the
+        # raw text if the grader didn't emit the tags.
+        m = re.search(r"<answer>(.*?)</answer>", text, re.S | re.I)
+        verdict = (m.group(1) if m else text).strip().lower()
+        return 1.0 if verdict.startswith("correct") else 0.0
 
     async def get_prompt(self) -> List[TextBlock]:
         return [TextBlock(text=INSTRUCTIONS + "\n\n" + self.validated.question)]
