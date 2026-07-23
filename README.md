@@ -4,7 +4,7 @@
 
 ## Description
 
-DSBC (Data Science task Benchmarking with Context engineering) evaluates language model agents on real-world data science tasks across 11 domains. Agents are given a dataset CSV and a natural language question, then must write and execute Python code to derive the answer. Rewards are programmatically verified via exact match or numeric tolerance. Based on the [DSBC benchmark](https://arxiv.org/abs/2507.23336) by Kadiyala et al.
+DSBC (Data Science task Benchmarking with Context engineering) evaluates language model agents on real-world data science tasks across 11 domains. Agents are given a dataset CSV and a natural language question, then must write and execute Python code to derive the answer. Numeric answers are graded programmatically with a numeric tolerance; non-numeric answers are graded by an **LLM judge** (default model `gpt-5.6-luna`). Based on the [DSBC benchmark](https://arxiv.org/abs/2507.23336) by Kadiyala et al.
 
 ## Capabilities
 
@@ -43,9 +43,9 @@ Tasks cover categories including statistics, correlation analysis, data parsing,
 This is a sparse, verifiable reward environment. Rewards are earned only when the agent submits a final answer:
 
 - **Binary**: 1.0 for correct, 0.0 for incorrect
-- **Numeric answers**: compared with `numpy.isclose(rtol=0.01)` (1% relative tolerance)
-- **String answers**: exact match after normalization (lowercase, strip whitespace, remove `%`, `$`, punctuation)
-- No LLM graders are used
+- **Numeric answers**: the last number in the model's answer is compared with the gold value via `numpy.isclose(rtol=0.01)` (1% relative tolerance)
+- **Non-numeric answers** (or answers containing no number): graded by an **LLM judge** — default model **`gpt-5.6-luna`** — which compares the submission to the gold reference, ignoring formatting, phrasing, unit placement, and extra explanation, and returns CORRECT/INCORRECT
+- The LLM judge client is built from the `openai_api_key` secret with no explicit `base_url`, so `OPENAI_BASE_URL` can route it to another OpenAI-compatible endpoint. Grader infra failures (auth/network) **propagate** — they are never scored as 0
 
 ## Data
 
@@ -71,7 +71,7 @@ Performance varies by task category. Statistical and data parsing tasks tend to 
 
 ## Other Environment Requirements
 
-DSBC requires an OpenReward API key for sandbox provisioning. No other external API keys are needed.
+DSBC requires an OpenReward API key for sandbox provisioning, plus an `openai_api_key` secret for the LLM judge that grades non-numeric answers (default model `gpt-5.6-luna`; point it at any OpenAI-compatible endpoint via `OPENAI_BASE_URL`). Tasks whose answer is numeric grade without it.
 
 ## Safety
 
