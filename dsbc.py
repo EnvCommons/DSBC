@@ -51,10 +51,7 @@ class DSBC(Environment):
 
         self.sandbox_settings = SandboxSettings(
             environment="GeneralReasoning/DSBC",
-            # Self-contained DSBC sandbox image (full data-science stack), published to
-            # Docker Hub as generalreasoning/dsbc_tools by .github/workflows/sandbox-image.yml.
-            # Pinned to an immutable release tag rather than :latest.
-            image="generalreasoning/dsbc_tools:v1.0.0",
+            image="generalreasoning/dsbc_tools:latest",
             machine_size="0.5:1",
             block_network=False,
             bucket_config=SandboxBucketConfig(
@@ -120,7 +117,7 @@ class DSBC(Environment):
                 "task_id": idx,
                 "dataset": row["Dataset"],
                 "question": row["Question_Rewritten"],
-                "answer": row["Answer_Rewritten"],
+                "answer": row["Response_Expected"],
             })
         return tasks
 
