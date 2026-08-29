@@ -30,6 +30,11 @@ DEFAULT_GRADER_MODEL = os.getenv("DSBC_GRADER_MODEL", "gpt-5.6-luna")
 
 _FLOAT_RE = re.compile(r'[-+]?\d[\d,]*\.?\d*(?:[eE][-+]?\d+)?')
 
+# Reward for a submission made after the task has already been graded. Negative
+# so repeat submissions are actively discouraged, not merely left unscored.
+REPEAT_SUBMISSION_PENALTY = -0.1
+
+
 
 def _to_float(s: str) -> float | None:
     """Parse a scalar answer to a float, tolerating %/$ and thousands separators."""
@@ -125,13 +130,13 @@ class DSBC(Environment):
             return ToolOutput(
                 blocks=[TextBlock(
                     text="An answer has already been submitted for this task. "
-                         "This episode is over and no further grading or reward is given.",
+                         "This episode is over: the answer is not re-graded, and repeat submissions are penalised (reward -0.1).",
                 )],
                 metadata={
                     "already_submitted": True,
                     "submission_count": self.submitted,
                 },
-                reward=0.0,
+                reward=REPEAT_SUBMISSION_PENALTY,
                 finished=True,
             )
 
