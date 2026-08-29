@@ -103,6 +103,12 @@ class DSBC(Environment):
         or_client = AsyncOpenReward(api_key=api_key)
         self.sandbox = or_client.sandbox(self.sandbox_settings)
 
+        # Answers submitted this session. Only the first is graded and rewarded:
+        # `answer` reports Correct!/Incorrect., so an uncapped tool would let the
+        # agent probe the verdict repeatedly until it guessed right (and, on the
+        # free numeric path, search for the gold value inside the 1% tolerance).
+        self.submitted = 0
+
     async def setup(self) -> None:
         await self.sandbox.start()
 
@@ -115,6 +121,20 @@ class DSBC(Environment):
         Use this tool to provide your final answer to the given question. If the question specified a format of how you
         should format your answer, use that format.
         """
+        if self.submitted > 0:
+            return ToolOutput(
+                blocks=[TextBlock(
+                    text="An answer has already been submitted for this task. "
+                         "This episode is over and no further grading or reward is given.",
+                )],
+                metadata={
+                    "already_submitted": True,
+                    "submission_count": self.submitted,
+                },
+                reward=0.0,
+                finished=True,
+            )
+
         gold = self.validated.answer
         gold_num = _to_float(gold)
         model_num = _last_float(params.answer)
@@ -131,6 +151,11 @@ class DSBC(Environment):
             method = "llm"
 
         result_text = "Correct!" if reward == 1.0 else "Incorrect."
+
+        # Incremented only after grading succeeds, so an infra failure in
+        # _llm_grade (which deliberately propagates) leaves the attempt retryable.
+        self.submitted += 1
+
         return ToolOutput(
             blocks=[TextBlock(text=result_text)],
             metadata={
