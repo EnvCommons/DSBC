@@ -166,7 +166,6 @@ class DSBC(Environment):
             metadata={
                 "is_correct": reward,
                 "grade_method": method,
-                "gold_answer": gold,
                 "model_last_float": model_num,
             },
             reward=reward,
