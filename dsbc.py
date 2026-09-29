@@ -166,7 +166,6 @@ class DSBC(Environment):
             metadata={
                 "is_correct": reward,
                 "grade_method": method,
-                "gold_answer": gold,
                 "model_last_float": model_num,
             },
             reward=reward,
@@ -205,7 +204,15 @@ class DSBC(Environment):
         # raw text if the grader didn't emit the tags.
         m = re.search(r"<answer>(.*?)</answer>", text, re.S | re.I)
         verdict = (m.group(1) if m else text).strip().lower()
-        return 1.0 if verdict.startswith("correct") else 0.0
+        if verdict.startswith("correct"):
+            return 1.0
+        if verdict.startswith("incorrect"):
+            return 0.0
+        # A reply with no verdict is a grader failure, not a grade: raise so the
+        # call stays retryable. The reply can restate the gold answer, so it is
+        # only logged.
+        logger.warning("grader reply had no verdict: %r", text)
+        raise RuntimeError("Grader reply had no Correct!/Incorrect. verdict")
 
     async def get_prompt(self) -> List[TextBlock]:
         return [TextBlock(text=INSTRUCTIONS + "\n\n" + self.validated.question)]
