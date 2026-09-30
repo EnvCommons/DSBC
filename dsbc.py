@@ -27,6 +27,7 @@ else:
 
 # Default LLM judge model for grading non-numeric answers (overridable via env).
 DEFAULT_GRADER_MODEL = os.getenv("DSBC_GRADER_MODEL", "gpt-5.6-luna")
+GRADER_ATTEMPTS = 3
 
 _FLOAT_RE = re.compile(r'[-+]?\d[\d,]*\.?\d*(?:[eE][-+]?\d+)?')
 
@@ -195,23 +196,27 @@ class DSBC(Environment):
         # NOTE: temperature is intentionally left at the API default. Some grader
         # models (e.g. gpt-5.6-luna) only support the default temperature (1) and
         # reject temperature=0 with a 400, which would fail every non-numeric grade.
-        response = await self.grader_client.chat.completions.create(
-            model=DEFAULT_GRADER_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = response.choices[0].message.content or ""
-        # Parse the verdict from inside the <answer></answer> tags; fall back to the
-        # raw text if the grader didn't emit the tags.
-        m = re.search(r"<answer>(.*?)</answer>", text, re.S | re.I)
-        verdict = (m.group(1) if m else text).strip().lower()
-        if verdict.startswith("correct"):
-            return 1.0
-        if verdict.startswith("incorrect"):
-            return 0.0
-        # A reply with no verdict is a grader failure, not a grade: raise so the
-        # call stays retryable. The reply can restate the gold answer, so it is
-        # only logged.
-        logger.warning("grader reply had no verdict: %r", text)
+        # The grader occasionally returns a reply with no verdict, and raising
+        # aborts the whole rollout, so ask again a few times first.
+        for attempt in range(1, GRADER_ATTEMPTS + 1):
+            response = await self.grader_client.chat.completions.create(
+                model=DEFAULT_GRADER_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = response.choices[0].message.content or ""
+            # Parse the verdict from inside the <answer></answer> tags; fall back to the
+            # raw text if the grader didn't emit the tags.
+            m = re.search(r"<answer>(.*?)</answer>", text, re.S | re.I)
+            verdict = (m.group(1) if m else text).strip().lower()
+            if verdict.startswith("correct"):
+                return 1.0
+            if verdict.startswith("incorrect"):
+                return 0.0
+            # The reply can restate the gold answer, so it is only logged.
+            logger.warning("grader reply had no verdict (attempt %d/%d): %r",
+                           attempt, GRADER_ATTEMPTS, text)
+        # No verdict at all is a grader failure, not a grade: raise so the call
+        # stays retryable.
         raise RuntimeError("Grader reply had no Correct!/Incorrect. verdict")
 
     async def get_prompt(self) -> List[TextBlock]:
