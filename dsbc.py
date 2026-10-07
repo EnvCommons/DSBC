@@ -37,6 +37,30 @@ REPEAT_SUBMISSION_PENALTY = -0.1
 
 
 
+# Rows of dataset.csv whose reference does not answer the question as written,
+# keyed by row index (the task id). Each entry gives the start of the question it
+# applies to (a correction is skipped if the row no longer matches), the corrected
+# reference, and a replacement question where the original is ambiguous.
+CORRECTIONS = {
+    # ISO week 25 alone holds the maximum weekly death count.
+    49: ("Using valid death dates only, aggregate total deaths by ISO week-of-year",
+         "25-25 weeks", None),
+    # The ten most recent years are 1970-1979; the reference summed eleven.
+    191: ("Using the most recent ten calendar years present in the data (inclusive)",
+          "NS, 846100", None),
+    # The reference ranks signed correlations of per-department rows; the question
+    # asks for absolute correlations of each store's weekly sales.
+    219: ("Identify the five stores whose weekly sales have the strongest relationship",
+          "42, 28, 38, 43, 33",
+          "Identify the five stores whose weekly sales have the strongest relationship with "
+          "the calendar day of the month by computing, for each store, the absolute Pearson "
+          "correlation between its total weekly sales (Weekly_Sales summed over all "
+          "departments for each date) and the day number within the month extracted from "
+          "the date. Return the five store numbers with the largest absolute correlations, "
+          "listed from highest to lowest, separated by commas with no spaces."),
+}
+
+
 def _to_float(s: str) -> float | None:
     """Parse a scalar answer to a float, tolerating %/$ and thousands separators."""
     s = str(s).replace("%", "").replace("$", "").replace(",", "").strip()
@@ -230,11 +254,15 @@ class DSBC(Environment):
 
         tasks = []
         for idx, row in df.iterrows():
+            question, answer = row["Question_Rewritten"], row["Response_Expected"]
+            if idx in CORRECTIONS and question.startswith(CORRECTIONS[idx][0]):
+                _, answer, new_question = CORRECTIONS[idx]
+                question = new_question or question
             tasks.append({
                 "task_id": idx,
                 "dataset": row["Dataset"],
-                "question": row["Question_Rewritten"],
-                "answer": row["Response_Expected"],
+                "question": question,
+                "answer": answer,
             })
         return tasks
 
