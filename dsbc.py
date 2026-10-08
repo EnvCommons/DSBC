@@ -58,6 +58,30 @@ CORRECTIONS = {
           "departments for each date) and the day number within the month extracted from "
           "the date. Return the five store numbers with the largest absolute correlations, "
           "listed from highest to lowest, separated by commas with no spaces."),
+    # The AQI data has two temperature columns. `AT (degree C)` is the ambient air
+    # temperature (seasonal and daily cycle); `Temp (degree C)` stays near 30 C all
+    # year and is uncorrelated with it, so the questions name the column.
+    24: ("Considering all records in the dataset, determine which calendar month",
+         "January",
+         "Considering all records in the dataset, determine which calendar month, derived "
+         "from each record’s timestamp, has the lowest average air temperature (the "
+         "`AT (degree C)` column). If multiple months tie, choose the earliest month in the "
+         "year. Answer with the English month name."),
+    33: ("What were the highest and lowest temperatures recorded over time?",
+         "31.7, 16.45",
+         "What were the highest and lowest air temperatures (the `AT (degree C)` column) "
+         "recorded over time? Answer with two floats separated by a comma, highest first."),
+    # Mildly skewed data is both "nearly normal" and "slightly right-skewed"; the
+    # question states the threshold that separates them.
+    96: ("What is the shape of the BMI distribution among customers in this dataset?",
+         "normal",
+         "What is the shape of the BMI distribution among customers in this dataset? Call "
+         "it left-skewed or right-skewed only if the absolute sample skewness of `bmi` is at "
+         "least 0.5; otherwise call it normal or uniform, whichever fits. Answer with one of: "
+         "normal,left-skewed,right-skewed,uniform"),
+    # The week dated 2010-12-31 is the dataset's Christmas holiday week.
+    221: ("Which holiday week (calendar week number) recorded the lowest total weekly sales",
+          "week52, christmas", None),
 }
 
 
