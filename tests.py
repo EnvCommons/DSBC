@@ -45,6 +45,36 @@ ORIGINAL_ROWS = {
 }
 
 
+ORIGINAL_ROWS_2 = {
+    24: (
+        "AQI Dataset",
+        "Considering all records in the dataset, determine which calendar month, derived from "
+        "each record\u2019s timestamp, has the lowest average air temperature. If multiple months "
+        "tie, choose the earliest month in the year. Answer with the English month name.",
+        "March",
+    ),
+    33: (
+        "AQI Dataset",
+        "What were the highest and lowest temperatures recorded over time? Answer with two "
+        "floats separated by a comma, highest first.",
+        "59.9, 22.43",
+    ),
+    96: (
+        "INSURANCE Dataset",
+        "What is the shape of the BMI distribution among customers in this dataset? Answer "
+        "with one of: normal,left-skewed,right-skewed,uniform",
+        "There is a nearly normal distribution of BMI among customers",
+    ),
+    221: (
+        "SALES Dataset",
+        "Which holiday week (calendar week number) recorded the lowest total weekly sales, and "
+        "which holiday is it? Answer in the format \u201cweekNN,holidayname\u201d (two-digit week "
+        "number, lowercase holiday name with no spaces). For example: week13,easter",
+        "Week 52, new year",
+    ),
+}
+
+
 def write_dataset(tmp_path, rows):
     records = []
     for i in range(max(rows) + 2):
@@ -67,6 +97,21 @@ def test_corrections_replace_the_references(tmp_path, monkeypatch):
     assert tasks[191]["question"] == ORIGINAL_ROWS[191][1]
     assert "summed over all departments" in tasks[219]["question"]
     assert tasks[50] == {"task_id": 50, "dataset": "STOCKS Dataset", "question": "Question 50?", "answer": "50"}
+
+
+def test_corrections_of_tasks_24_33_96_221(tmp_path, monkeypatch):
+    monkeypatch.setattr(dsbc, "DATASET_PATH", write_dataset(tmp_path, ORIGINAL_ROWS_2))
+    tasks = DSBC.list_tasks("train")
+    assert [t["task_id"] for t in tasks] == list(range(223))
+    assert tasks[24]["answer"] == "January"
+    assert tasks[33]["answer"] == "31.7, 16.45"
+    assert tasks[96]["answer"] == "normal"
+    assert tasks[221]["answer"] == "week52, christmas"
+    assert "`AT (degree C)`" in tasks[24]["question"]
+    assert "`AT (degree C)`" in tasks[33]["question"]
+    assert "absolute sample skewness" in tasks[96]["question"]
+    assert tasks[221]["question"] == ORIGINAL_ROWS_2[221][1]
+    assert tasks[25] == {"task_id": 25, "dataset": "STOCKS Dataset", "question": "Question 25?", "answer": "25"}
 
 
 def test_correction_skipped_when_the_row_does_not_match(tmp_path, monkeypatch):
@@ -118,3 +163,29 @@ def test_derive_219():
     )
     top = corr.sort_values(ascending=False).index[:5]
     assert dsbc.CORRECTIONS[219][1] == ", ".join(str(s) for s in top)
+
+
+def test_derive_24_and_33():
+    df = source("AQI")
+    month = pd.to_datetime(df["From Date"]).dt.month
+    monthly = df.groupby(month)["AT (degree C)"].mean()
+    assert dsbc.CORRECTIONS[24][1] == pd.Timestamp(2000, monthly.idxmin(), 1).month_name()
+    at = df["AT (degree C)"]
+    assert dsbc.CORRECTIONS[33][1] == f"{at.max()}, {at.min()}"
+
+
+def test_derive_96():
+    skew = source("INSURANCE")["bmi"].skew()
+    assert abs(skew) < 0.5
+    assert dsbc.CORRECTIONS[96][1] == "normal"
+
+
+def test_derive_221():
+    # Holiday weeks named in the source competition's data description.
+    christmas = pd.to_datetime(["2010-12-31", "2011-12-30", "2012-12-28"])
+    df = source("SALES")
+    df["Date"] = pd.to_datetime(df["Date"])
+    totals = df[df["IsHoliday"]].groupby("Date")["Weekly_Sales"].sum()
+    lowest = totals.idxmin()
+    assert lowest in christmas
+    assert dsbc.CORRECTIONS[221][1] == f"week{lowest.isocalendar().week:02d}, christmas"
