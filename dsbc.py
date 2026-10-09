@@ -82,6 +82,16 @@ CORRECTIONS = {
     # The week dated 2010-12-31 is the dataset's Christmas holiday week.
     221: ("Which holiday week (calendar week number) recorded the lowest total weekly sales",
           "week52, christmas", None),
+    # Conventions disagree on where "moderate" ends (0.5, 0.6 or 0.7), so the question
+    # states the cut-offs. 0.3 and 0.6 match the strength labels of the source
+    # benchmark's other correlation questions.
+    282: ("What is the correlation between visibility and humidity?",
+          "strong negative",
+          "What is the Pearson correlation between visibility (`Visibility_km`) and relative "
+          "humidity (`Rel Hum_%`)? Classify its strength by the absolute value of the "
+          "coefficient: weak below 0.3, moderate from 0.3 up to 0.6, strong at 0.6 or above. "
+          "Answer with one of the six phrases: strong positive, moderate positive, weak "
+          "positive, weak negative, moderate negative, or strong negative."),
 }
 
 

@@ -114,6 +114,26 @@ def test_corrections_of_tasks_24_33_96_221(tmp_path, monkeypatch):
     assert tasks[25] == {"task_id": 25, "dataset": "STOCKS Dataset", "question": "Question 25?", "answer": "25"}
 
 
+ORIGINAL_282 = (
+    "WEATHER Dataset",
+    "What is the correlation between visibility and humidity? Answer with one of the six "
+    "phrases: strong positive, moderate positive, weak positive, weak negative, moderate "
+    "negative, or strong negative.",
+    "strong negative",
+)
+
+
+def test_correction_of_task_282(tmp_path, monkeypatch):
+    monkeypatch.setattr(dsbc, "DATASET_PATH", write_dataset(tmp_path, {282: ORIGINAL_282}))
+    tasks = DSBC.list_tasks("train")
+    assert [t["task_id"] for t in tasks] == list(range(284))
+    assert tasks[282]["answer"] == "strong negative"
+    question = tasks[282]["question"]
+    assert "Pearson" in question and "`Visibility_km`" in question and "`Rel Hum_%`" in question
+    assert "moderate from 0.3 up to 0.6, strong at 0.6 or above" in question
+    assert tasks[281] == {"task_id": 281, "dataset": "STOCKS Dataset", "question": "Question 281?", "answer": "281"}
+
+
 def test_correction_skipped_when_the_row_does_not_match(tmp_path, monkeypatch):
     rows = {49: ("COVID Dataset", "Some other question?", "seven")}
     monkeypatch.setattr(dsbc, "DATASET_PATH", write_dataset(tmp_path, rows))
@@ -189,3 +209,10 @@ def test_derive_221():
     lowest = totals.idxmin()
     assert lowest in christmas
     assert dsbc.CORRECTIONS[221][1] == f"week{lowest.isocalendar().week:02d}, christmas"
+
+
+def test_derive_282():
+    df = source("WEATHER")
+    r = df["Visibility_km"].corr(df["Rel Hum_%"])
+    assert -1 < r <= -0.6
+    assert dsbc.CORRECTIONS[282][1] == "strong negative"
