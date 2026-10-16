@@ -216,3 +216,69 @@ def test_derive_282():
     r = df["Visibility_km"].corr(df["Rel Hum_%"])
     assert -1 < r <= -0.6
     assert dsbc.CORRECTIONS[282][1] == "strong negative"
+
+
+@pytest.mark.parametrize("reply, expected", [
+    ("<reasoning>Same country.</reasoning>\n<answer>Correct!</answer>", 1.0),
+    ("<reasoning>Different country.</reasoning>\n<answer>Incorrect.</answer>", 0.0),
+    # The grader closes its reasoning with </answer> and puts the verdict after it.
+    ("<reasoning>\nSame country.\n</answer>\nCorrect.", 1.0),
+    ("<reasoning>\nSame country.\n</answer>\nCorrect!", 1.0),
+    ("<reasoning>\nDifferent country.\n</answer>\nIncorrect.", 0.0),
+    ("<reasoning>\nSame country.\n</answer>\n<answer>Correct!", 1.0),
+    ("<reasoning>\nSame country.\n</reasoning>\n**Incorrect.**", 0.0),
+    ("Correct!", 1.0),
+    # No verdict, or a trailing text that is more than a bare verdict.
+    ("", None),
+    ("<reasoning>Same country.</reasoning>", None),
+    ("<reasoning>Unsure.</reasoning>\n<answer>Maybe</answer>", None),
+    ("<reasoning>Unsure.</reasoning>\nCorrect would be Palau. Incorrect.", None),
+    ("<reasoning>Unsure.</reasoning>\nIncorrectly formatted, but correct.", None),
+])
+def test_parse_verdict(reply, expected):
+    assert dsbc._parse_verdict(reply) == expected
+
+
+class FakeGraderClient:
+    """Stands in for openai.AsyncClient, returning the given replies in order."""
+
+    def __init__(self, replies):
+        self.replies = list(replies)
+        self.calls = 0
+        self.chat = self
+        self.completions = self
+
+    async def create(self, **kwargs):
+        self.calls += 1
+        text = self.replies.pop(0)
+        message = type("Message", (), {"content": text})
+        choice = type("Choice", (), {"message": message})
+        return type("Response", (), {"choices": [choice]})
+
+
+def grader(replies):
+    env = DSBC.__new__(DSBC)
+    env.grader_client = FakeGraderClient(replies)
+    return env
+
+
+@pytest.mark.asyncio
+async def test_llm_grade_reads_a_verdict_after_a_misplaced_closing_tag():
+    env = grader(["<reasoning>\nSame country.\n</answer>\nCorrect."])
+    assert await env._llm_grade("Q?", "Marshall Islands", "Marshall Islands") == 1.0
+    assert env.grader_client.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_llm_grade_retries_a_reply_with_no_verdict():
+    env = grader(["<reasoning>Same country.</reasoning>", "<answer>Incorrect.</answer>"])
+    assert await env._llm_grade("Q?", "Marshall Islands", "Palau") == 0.0
+    assert env.grader_client.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_llm_grade_raises_when_no_attempt_has_a_verdict():
+    env = grader(["<reasoning>Same country.</reasoning>"] * dsbc.GRADER_ATTEMPTS)
+    with pytest.raises(RuntimeError, match="no Correct!/Incorrect. verdict"):
+        await env._llm_grade("Q?", "Marshall Islands", "Marshall Islands")
+    assert env.grader_client.calls == dsbc.GRADER_ATTEMPTS
