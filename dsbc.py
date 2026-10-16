@@ -118,6 +118,28 @@ def _last_float(s: str) -> float | None:
         return None
 
 
+def _parse_verdict(text: str) -> float | None:
+    """Read the grader's verdict: 1.0 for Correct!, 0.0 for Incorrect., None if the
+    reply carries no verdict.
+
+    The verdict is taken from inside the <answer></answer> tags. Without a well-formed
+    pair, the text after the last tag is accepted only if it is exactly a verdict: the
+    grader sometimes closes its reasoning with </answer> and writes the verdict after it."""
+    m = re.search(r"<answer>(.*?)</answer>", text, re.S | re.I)
+    if m:
+        verdict = m.group(1).strip().lower()
+        if verdict.startswith("correct"):
+            return 1.0
+        if verdict.startswith("incorrect"):
+            return 0.0
+        return None
+    tail = re.split(r"<[^>]*>", text)[-1]
+    m = re.fullmatch(r"[\s*]*(correct|incorrect)[.!]?[\s*]*", tail, re.I)
+    if m:
+        return 1.0 if m.group(1).lower() == "correct" else 0.0
+    return None
+
+
 class TaskSpec(BaseModel, extra="forbid"):
     task_id: int
     dataset: str
@@ -262,14 +284,9 @@ class DSBC(Environment):
                 messages=[{"role": "user", "content": prompt}],
             )
             text = response.choices[0].message.content or ""
-            # Parse the verdict from inside the <answer></answer> tags; fall back to the
-            # raw text if the grader didn't emit the tags.
-            m = re.search(r"<answer>(.*?)</answer>", text, re.S | re.I)
-            verdict = (m.group(1) if m else text).strip().lower()
-            if verdict.startswith("correct"):
-                return 1.0
-            if verdict.startswith("incorrect"):
-                return 0.0
+            verdict = _parse_verdict(text)
+            if verdict is not None:
+                return verdict
             # The reply can restate the gold answer, so it is only logged.
             logger.warning("grader reply had no verdict (attempt %d/%d): %r",
                            attempt, GRADER_ATTEMPTS, text)
