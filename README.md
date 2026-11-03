@@ -18,9 +18,13 @@ DSBC (Data Science task Benchmarking with Context engineering) evaluates languag
 
 Agents are given a sandbox with 1GB of RAM and 0.5 CPUs, with pandas pre-installed.
 
+## License
+
+[MIT](https://opensource.org/licenses/MIT).
+
 ## Tasks
 
-There are 303 tasks in a single training split, spanning 11 datasets:
+There are 303 tasks in a single `train` split, spanning 11 datasets:
 
 | Dataset | Tasks |
 |---------|-------|
@@ -40,16 +44,16 @@ Tasks cover categories including statistics, correlation analysis, data parsing,
 
 ## Reward Structure
 
-This is a sparse, verifiable reward environment. Rewards are earned only when the agent submits a final answer:
+This is a sparse, verifiable reward environment. Rewards are earned only when the agent submits a final answer with `answer`, which ends the episode. Only the first answer is graded; a repeat submission gets -0.1.
 
 - **Binary**: 1.0 for correct, 0.0 for incorrect
 - **Numeric answers**: the last number in the model's answer is compared with the gold value via `numpy.isclose(rtol=0.01)` (1% relative tolerance)
-- **Non-numeric answers** (or answers containing no number): graded by an **LLM judge** — default model **`gpt-5.6-luna`** — which compares the submission to the gold reference, ignoring formatting, phrasing, unit placement, and extra explanation, and returns CORRECT/INCORRECT
-- The LLM judge client is built from the `openai_api_key` secret with no explicit `base_url`, so `OPENAI_BASE_URL` can route it to another OpenAI-compatible endpoint. Grader infra failures (auth/network) **propagate** — they are never scored as 0
+- **Non-numeric answers** (or answers containing no number): graded by an **LLM judge** (default model **`gpt-5.6-luna`**, overridable with `DSBC_GRADER_MODEL`), which compares the submission to the gold reference, ignoring formatting, phrasing, unit placement, and extra explanation, and returns Correct!/Incorrect. A reply with no verdict is retried up to 3 times
+- The LLM judge client is built from the `openai_api_key` secret with no explicit `base_url`, so `OPENAI_BASE_URL` can route it to another OpenAI-compatible endpoint. Grader infra failures (auth/network) **propagate**: they are never scored as 0
 
 ## Data
 
-Each task is associated with one of 11 CSV datasets covering domains such as stock prices, air quality, insurance, weather, and COVID statistics. The relevant dataset is copied into the agent's working directory at task start.
+Each task is associated with one of 11 CSV datasets covering domains such as stock prices, air quality, insurance, weather, and COVID statistics. The relevant dataset is mounted read-only at `/workspace` in the agent's sandbox.
 
 ## Tools
 
@@ -65,13 +69,9 @@ Agents have access to CLI tools for exploring and manipulating files:
 
 DSBC is a multi-turn environment. Agents typically explore the dataset, write Python analysis code, execute it, and submit an answer.
 
-## Environment Difficulty
-
-Performance varies by task category. Statistical and data parsing tasks tend to be more straightforward, while feature engineering and distribution analysis tasks require deeper reasoning.
-
 ## Other Environment Requirements
 
-DSBC requires an OpenReward API key for sandbox provisioning, plus an `openai_api_key` secret for the LLM judge that grades non-numeric answers (default model `gpt-5.6-luna`; point it at any OpenAI-compatible endpoint via `OPENAI_BASE_URL`). Tasks whose answer is numeric grade without it.
+DSBC requires an `openai_api_key` secret for the LLM judge that grades non-numeric answers (default model `gpt-5.6-luna`; point it at any OpenAI-compatible endpoint via `OPENAI_BASE_URL`). Tasks whose answer is numeric grade without it.
 
 ## Safety
 
